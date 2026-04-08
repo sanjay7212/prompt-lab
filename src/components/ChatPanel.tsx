@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "re
 import { Conversation, Message } from "@/lib/types";
 
 export interface ChatPanelHandle {
-  sendMessage: (text: string, systemPrompt: string) => Promise<void>;
+  sendMessage: (text: string, systemPrompt: string, webSearchOverride?: boolean) => Promise<void>;
   getProvider: () => string;
   getModel: () => string;
 }
@@ -33,7 +33,9 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
 ) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [webSearch, setWebSearch] = useState(true);
   const [selectedProvider, setSelectedProvider] = useState(
     conversation?.provider || Object.keys(providers)[0] || "claude"
   );
@@ -61,8 +63,10 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
 
   const availableModels = providers[selectedProvider]?.models || [];
 
-  const doSend = async (text: string, systemPromptOverride?: string) => {
+  const doSend = async (text: string, systemPromptOverride?: string, webSearchOverride?: boolean) => {
     if (!text.trim() || loading) return;
+
+    const useWebSearch = webSearchOverride !== undefined ? webSearchOverride : webSearch;
 
     const userMessage: Message = {
       role: "user",
@@ -92,6 +96,43 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
     setLoading(true);
     setError(null);
 
+    const streamingMsg: Message = {
+      role: "assistant",
+      content: "",
+      timestamp: Date.now(),
+      webSearchEnabled: useWebSearch,
+    };
+
+    const updateMsg = (content: string, tokenUsage?: import("@/lib/types").TokenUsage) => {
+      onConversationUpdate({
+        ...updatedConv,
+        messages: [...updatedMessages, { ...streamingMsg, content, tokenUsage }],
+        updatedAt: Date.now(),
+      });
+    };
+
+    let receivedText = "";
+    let displayedLength = 0;
+    let streamFinished = false;
+    let finalTokenUsage: import("@/lib/types").TokenUsage | undefined;
+    let streamError: string | null = null;
+
+    const typewriterInterval = setInterval(() => {
+      if (displayedLength < receivedText.length) {
+        displayedLength++;
+        updateMsg(receivedText.slice(0, displayedLength));
+      } else if (streamFinished) {
+        clearInterval(typewriterInterval);
+        if (streamError) {
+          setError(streamError);
+        } else {
+          updateMsg(receivedText, finalTokenUsage);
+        }
+        setLoading(false);
+        setStreaming(false);
+      }
+    }, 15);
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -104,40 +145,55 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
             role: m.role,
             content: m.content,
           })),
+          webSearch: useWebSearch,
         }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({ error: "Request failed" }));
         throw new Error(data.error || "Request failed");
       }
 
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: data.content,
-        tokenUsage: data.tokenUsage,
-        timestamp: Date.now(),
-      };
+      setStreaming(true);
+      updateMsg("");
 
-      const finalConv: Conversation = {
-        ...updatedConv,
-        messages: [...updatedMessages, assistantMessage],
-        updatedAt: Date.now(),
-      };
-      onConversationUpdate(finalConv);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop()!;
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let event: { type: string; text?: string; tokenUsage?: import("@/lib/types").TokenUsage; message?: string };
+          try { event = JSON.parse(line); } catch { continue; }
+
+          if (event.type === "chunk" && event.text) {
+            receivedText += event.text;
+          } else if (event.type === "done") {
+            finalTokenUsage = event.tokenUsage;
+          } else if (event.type === "error") {
+            throw new Error(event.message || "Stream error");
+          }
+        }
+      }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Request failed";
-      setError(msg);
-    } finally {
-      setLoading(false);
+      streamError = err instanceof Error ? err.message : "Request failed";
     }
+
+    streamFinished = true;
   };
 
   const handleSend = () => doSend(input);
 
   useImperativeHandle(ref, () => ({
-    sendMessage: (text: string, systemPrompt: string) => doSend(text, systemPrompt),
+    sendMessage: (text: string, systemPrompt: string, webSearchOverride?: boolean) =>
+      doSend(text, systemPrompt, webSearchOverride),
     getProvider: () => selectedProvider,
     getModel: () => selectedModel,
   }));
@@ -174,10 +230,26 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
             </option>
           ))}
         </select>
+        <label className={`flex items-center gap-1.5 text-xs cursor-pointer select-none shrink-0 px-2 py-1 rounded-md transition-colors ${
+          webSearch
+            ? "bg-[var(--accent-light)] text-[var(--accent)] font-medium"
+            : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+        }`}>
+          <input
+            type="checkbox"
+            checked={webSearch}
+            onChange={(e) => setWebSearch(e.target.checked)}
+            className="w-3.5 h-3.5 rounded accent-[var(--accent)]"
+          />
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+          </svg>
+          Web Search
+        </label>
         {onClose && (
           <button
             onClick={onClose}
-            className="text-[var(--text-secondary)] hover:text-[var(--error)] ml-1 w-7 h-7 flex items-center justify-center rounded-md hover:bg-red-50 transition-colors"
+            className="text-[var(--text-secondary)] hover:text-[var(--error)] w-7 h-7 flex items-center justify-center rounded-md hover:bg-red-50 transition-colors"
             title="Close panel"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -214,6 +286,14 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
                   : "bg-[var(--assistant-bubble)] text-[var(--text-primary)]"
               }`}
             >
+              {msg.webSearchEnabled && msg.role === "assistant" && (
+                <div className="flex items-center gap-1 mb-2 text-xs text-[var(--accent)] font-medium">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                  </svg>
+                  Web Search
+                </div>
+              )}
               <div className="message-content text-sm whitespace-pre-wrap leading-relaxed">
                 {msg.content}
               </div>
@@ -235,7 +315,7 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
             </div>
           </div>
         ))}
-        {loading && (
+        {loading && !streaming && (
           <div className="flex justify-start">
             <div className="bg-[var(--assistant-bubble)] rounded-2xl px-4 py-3 text-sm text-[var(--text-secondary)]">
               <div className="flex gap-1.5 items-center">
