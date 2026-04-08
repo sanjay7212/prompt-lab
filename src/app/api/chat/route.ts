@@ -75,7 +75,11 @@ async function callOpenAI(
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({ model, messages: allMessages, max_tokens: 4096 }),
+    body: JSON.stringify({
+      model,
+      messages: allMessages,
+      max_completion_tokens: 4096,
+    }),
   });
 
   if (!res.ok) {

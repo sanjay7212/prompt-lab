@@ -20,7 +20,7 @@ export async function GET() {
     for (const [provider, providerConfig] of Object.entries(config.providers)) {
       const resolvedKey = resolveEnvVars(providerConfig.apiKey);
       safeConfig[provider] = {
-        models: resolvedKey && !resolvedKey.startsWith("$") ? providerConfig.models : [],
+        models: providerConfig.models,
       };
     }
 
