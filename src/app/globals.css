@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fb;
+  --bg-tertiary: #eef0f4;
+  --bg-sidebar: #1b2a4a;
+  --bg-sidebar-hover: #253a5e;
+  --bg-sidebar-active: #2d4470;
+  --text-primary: #1a1a2e;
+  --text-secondary: #5a6478;
+  --text-sidebar: #a8b4c8;
+  --text-sidebar-active: #ffffff;
+  --accent: #e8792f;
+  --accent-hover: #d06820;
+  --accent-light: #fdf0e6;
+  --border: #dfe2e8;
+  --border-light: #eef0f4;
+  --success: #2eae65;
+  --error: #e04848;
+  --user-bubble: #1b2a4a;
+  --assistant-bubble: #f0f2f6;
+  --header-bg: #ffffff;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+body {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c8cdd6;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a8b8;
+}
+
+/* Markdown-like formatting for messages */
+.message-content pre {
+  background: #f5f6f8;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.message-content code {
+  background: #f0f2f6;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: #c7254e;
+}
+
+.message-content pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+.message-content p {
+  margin: 6px 0;
+}
+
+.message-content ul,
+.message-content ol {
+  margin: 6px 0;
+  padding-left: 20px;
+}
