@@ -204,10 +204,6 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
     <div className="flex flex-col h-full bg-white rounded-xl border border-[var(--border)] shadow-[var(--shadow)]">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-secondary)] rounded-t-xl">
-        <span className="text-xs text-[var(--text-secondary)] font-semibold uppercase tracking-wider">
-          Panel {panelId}
-        </span>
-        <div className="w-px h-4 bg-[var(--border)] mx-1" />
         <select
           value={selectedProvider}
           onChange={(e) => handleProviderChange(e.target.value)}
@@ -244,7 +240,6 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
           </svg>
-          Web Search
         </label>
         {onClose && (
           <button
@@ -286,14 +281,6 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
                   : "bg-[var(--assistant-bubble)] text-[var(--text-primary)]"
               }`}
             >
-              {msg.webSearchEnabled && msg.role === "assistant" && (
-                <div className="flex items-center gap-1 mb-2 text-xs text-[var(--accent)] font-medium">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-                  </svg>
-                  Web Search
-                </div>
-              )}
               <div className="message-content text-sm whitespace-pre-wrap leading-relaxed">
                 {msg.content}
               </div>
