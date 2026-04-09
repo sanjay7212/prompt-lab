@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import { Conversation, Message } from "@/lib/types";
 
 export interface ChatPanelHandle {
@@ -277,12 +281,14 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(function ChatPanel
             <div
               className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                 msg.role === "user"
-                  ? "bg-[var(--user-bubble)] text-white"
+                  ? "user-message bg-[var(--user-bubble)] text-white"
                   : "bg-[var(--assistant-bubble)] text-[var(--text-primary)]"
               }`}
             >
-              <div className="message-content text-sm whitespace-pre-wrap leading-relaxed">
-                {msg.content}
+              <div className={`message-content text-sm leading-relaxed prose prose-sm max-w-none ${msg.role === "user" ? "prose-invert" : ""}`}>
+                <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                  {msg.content}
+                </ReactMarkdown>
               </div>
               {msg.tokenUsage && (
                 <div className={`mt-2 pt-2 border-t flex gap-3 text-xs ${

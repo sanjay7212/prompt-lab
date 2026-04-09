@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import "katex/dist/katex.min.css";
 
 :root {
   --bg-primary: #ffffff;
@@ -46,6 +47,18 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #a0a8b8;
+}
+
+/* Force white text for user message bubbles */
+.user-message .message-content,
+.user-message .message-content p,
+.user-message .message-content li,
+.user-message .message-content strong,
+.user-message .message-content em,
+.user-message .message-content h1,
+.user-message .message-content h2,
+.user-message .message-content h3 {
+  color: #ffffff !important;
 }
 
 /* Markdown-like formatting for messages */
