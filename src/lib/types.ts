@@ -3,6 +3,7 @@ export interface Message {
   content: string;
   tokenUsage?: TokenUsage;
   timestamp: number;
+  webSearchEnabled?: boolean;
 }
 
 export interface TokenUsage {

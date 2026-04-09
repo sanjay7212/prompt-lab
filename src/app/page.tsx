@@ -18,6 +18,7 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [sharedSystemPrompt, setSharedSystemPrompt] = useState("");
   const [sharedInput, setSharedInput] = useState("");
+  const [sharedWebSearch, setSharedWebSearch] = useState(true);
   const [sendingBoth, setSendingBoth] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -103,11 +104,7 @@ export default function Home() {
   };
 
   const handleNewClick = () => {
-    setPanels((prev) => {
-      const updated = [...prev];
-      updated[0] = { conversationId: null };
-      return updated;
-    });
+    setPanels((prev) => prev.map(() => ({ conversationId: null })));
   };
 
   const addPanel = () => {
@@ -145,7 +142,7 @@ export default function Home() {
     const promises = panels.map((_, i) => {
       const ref = panelRefs.current[i];
       if (ref) {
-        return ref.sendMessage(text, sharedSystemPrompt);
+        return ref.sendMessage(text, sharedSystemPrompt, sharedWebSearch);
       }
       return Promise.resolve();
     });
@@ -256,13 +253,31 @@ export default function Home() {
                     rows={2}
                     disabled={sendingBoth}
                   />
-                  <button
-                    onClick={handleSendToBoth}
-                    disabled={sendingBoth || !sharedInput.trim()}
-                    className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 text-white px-6 py-3 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap shadow-sm"
-                  >
-                    Send to Both
-                  </button>
+                  <div className="flex flex-col gap-2 items-stretch">
+                    <label className={`flex items-center gap-1.5 text-xs cursor-pointer select-none px-2 py-1.5 rounded-lg border transition-colors ${
+                      sharedWebSearch
+                        ? "bg-[var(--accent-light)] text-[var(--accent)] border-[var(--accent)]/20 font-medium"
+                        : "text-[var(--text-secondary)] border-[var(--border)] hover:text-[var(--text-primary)]"
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={sharedWebSearch}
+                        onChange={(e) => setSharedWebSearch(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded accent-[var(--accent)]"
+                      />
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                      </svg>
+                      Web Search
+                    </label>
+                    <button
+                      onClick={handleSendToBoth}
+                      disabled={sendingBoth || !sharedInput.trim()}
+                      className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 text-white px-6 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap shadow-sm"
+                    >
+                      Send to Both
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
